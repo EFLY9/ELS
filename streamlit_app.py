@@ -132,11 +132,11 @@ if st.session_state.role is None:
 
 # ==================== SUPPLIER ====================
 elif st.session_state.role == "supplier":
-    col1, col2 = st.columns([6, 1])
+    col1, col2 = st.columns([8, 2])
     with col1:
-        st.markdown("### ELS Registration — Supplier")
+        st.markdown("<h3 style='margin-bottom:0;'>ELS Registration — Supplier</h3>", unsafe_allow_html=True)
     with col2:
-        if st.button("Switch Role", use_container_width=True):
+        if st.button("Switch Role"):
             st.session_state.role = None
             st.session_state.page = "dashboard"
             st.rerun()
@@ -204,7 +204,7 @@ elif st.session_state.role == "supplier":
         c1, c2 = st.columns(2)
         with c1:
             if uploaded and st.button("Analyze Report", type="primary"):
-                with st.spinner("Extracting and validating..."):
+                with st.spinner("Extracting and validating... (this may take 30-60 seconds)"):
                     try:
                         pdf = uploaded.read()
                         ext_fn = extract_fridge_from_pdf if pt == "refrigerator" else extract_from_pdf
@@ -216,8 +216,12 @@ elif st.session_state.role == "supplier":
                                                  "field_sources": {}, "return_comments": ""}
                         st.session_state.page = "results"
                         st.rerun()
+                    except ValueError as e:
+                        st.error(f"API configuration error: {e}")
+                        st.info("Make sure ANTHROPIC_AUTH_TOKEN and ANTHROPIC_BASE_URL are set in Streamlit secrets (Settings > Secrets).")
                     except Exception as e:
-                        st.error(f"Error: {e}")
+                        st.error(f"Error: {type(e).__name__}: {e}")
+                        st.info("If the API is unreachable, try using the Demo button instead.")
         with c2:
             if st.button("Try Demo"):
                 demo_fn = get_fridge_demo_data if pt == "refrigerator" else get_demo_data
@@ -324,11 +328,11 @@ elif st.session_state.role == "supplier":
 
 # ==================== OFFICER ====================
 elif st.session_state.role == "officer":
-    col1, col2 = st.columns([6, 1])
+    col1, col2 = st.columns([8, 2])
     with col1:
-        st.markdown("### ELS Registration — Officer")
+        st.markdown("<h3 style='margin-bottom:0;'>ELS Registration — Officer</h3>", unsafe_allow_html=True)
     with col2:
-        if st.button("Switch Role", use_container_width=True):
+        if st.button("Switch Role"):
             st.session_state.role = None
             st.session_state.page = "dashboard"
             st.rerun()
