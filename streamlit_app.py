@@ -381,47 +381,49 @@ elif st.session_state.role == "officer":
             st.markdown(html, unsafe_allow_html=True)
 
             st.write("")
-            for sub in subs:
-                sid = sub["id"]
-                status = sub.get("status", "Pending Review")
-                cols = st.columns([2, 2, 2, 2])
-                with cols[0]:
-                    if st.button(f"View {sid}", key=f"v_{sid}"):
-                        st.session_state.page = f"detail_{sid}"
-                        st.rerun()
-                with cols[1]:
-                    if status == "Approved":
-                        if st.button(f"De-register {sid}", key=f"dr_{sid}"):
+            sel = st.selectbox("Select submission to act on:", [""] + [f"{s['id']} — {s.get('brand','')} {(s.get('model','') or '')[:20]} ({s.get('status','Pending Review')})" for s in subs], key="officer_sel")
+            if sel:
+                sid = sel.split(" — ")[0]
+                sub_data = next((s for s in subs if s["id"] == sid), None)
+                if sub_data:
+                    status = sub_data.get("status", "Pending Review")
+                    cols = st.columns(4)
+                    with cols[0]:
+                        if st.button("View", key=f"v_{sid}", type="primary"):
+                            st.session_state.page = f"detail_{sid}"
+                            st.rerun()
+                    with cols[1]:
+                        if status == "Approved" and st.button("De-register", key=f"dr_{sid}"):
                             st.session_state[f"action_{sid}"] = "deregister"
                             st.rerun()
-                with cols[2]:
-                    if st.button(f"Delete {sid}", key=f"dl_{sid}"):
-                        st.session_state[f"action_{sid}"] = "delete"
-                        st.rerun()
+                    with cols[2]:
+                        if st.button("Delete", key=f"dl_{sid}"):
+                            st.session_state[f"action_{sid}"] = "delete"
+                            st.rerun()
 
-                action_key = f"action_{sid}"
-                if st.session_state.get(action_key):
-                    act = st.session_state[action_key]
-                    if act == "delete":
-                        st.warning(f"Confirm delete {sid}?")
-                        c1, c2 = st.columns(2)
-                        if c1.button("Yes, delete", key=f"yd_{sid}"):
-                            do_action(sid, "delete")
-                            del st.session_state[action_key]
-                            st.rerun()
-                        if c2.button("Cancel", key=f"cd_{sid}"):
-                            del st.session_state[action_key]
-                            st.rerun()
-                    elif act == "deregister":
-                        reason = st.text_input("De-registration reason:", key=f"drr_{sid}")
-                        c1, c2 = st.columns(2)
-                        if c1.button("Confirm", key=f"cdr_{sid}") and reason.strip():
-                            do_action(sid, "deregister", reason.strip())
-                            del st.session_state[action_key]
-                            st.rerun()
-                        if c2.button("Cancel", key=f"xdr_{sid}"):
-                            del st.session_state[action_key]
-                            st.rerun()
+                    action_key = f"action_{sid}"
+                    if st.session_state.get(action_key):
+                        act = st.session_state[action_key]
+                        if act == "delete":
+                            st.warning(f"Confirm delete {sid}?")
+                            c1, c2 = st.columns(2)
+                            if c1.button("Yes, delete", key=f"yd_{sid}"):
+                                do_action(sid, "delete")
+                                del st.session_state[action_key]
+                                st.rerun()
+                            if c2.button("Cancel", key=f"cd_{sid}"):
+                                del st.session_state[action_key]
+                                st.rerun()
+                        elif act == "deregister":
+                            reason = st.text_input("De-registration reason:", key=f"drr_{sid}")
+                            c1, c2 = st.columns(2)
+                            if c1.button("Confirm", key=f"cdr_{sid}") and reason.strip():
+                                do_action(sid, "deregister", reason.strip())
+                                del st.session_state[action_key]
+                                st.rerun()
+                            if c2.button("Cancel", key=f"xdr_{sid}"):
+                                del st.session_state[action_key]
+                                st.rerun()
 
     # --- Detail view ---
     elif st.session_state.page.startswith("detail_"):
