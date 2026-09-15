@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELS TV Registration — Officer Review</title>
+    <link rel="stylesheet" href="/static/styles.css?v=12">
+</head>
+<body>
+    <div class="header">
+        <h1>ELS Registration</h1>
+        <span class="badge badge-officer">Officer</span>
+        <a href="/" class="header-back">&#8592; Switch Role</a>
+    </div>
+
+    <div class="container" id="app">
+        <!-- Submissions List View -->
+        <div id="listView">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <h2 style="font-size:18px;font-weight:600;">Supplier Submissions</h2>
+                <button class="btn btn-outline btn-sm" onclick="loadSubmissions()">Refresh</button>
+            </div>
+            <div id="submissionsList"></div>
+        </div>
+
+        <!-- Detail View -->
+        <div id="detailView" style="display:none;">
+            <button class="btn btn-outline back-btn" onclick="showList()">&#8592; Back to submissions</button>
+
+            <div id="submissionMeta" style="margin-bottom:16px;"></div>
+
+            <div class="results-layout">
+                <!-- Left Panel: Full Validation -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Compliance Validation</h2>
+                        <span id="overallStatus" class="badge"></span>
+                    </div>
+                    <div class="panel-body" id="validationPanel"></div>
+                </div>
+
+                <!-- Right Panel: Registration Form -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>ELS Registration Fields</h2>
+                        <button class="btn btn-sm btn-outline" onclick="copyAllFields()">Copy All</button>
+                    </div>
+                    <div class="panel-body" id="formPanel"></div>
+                </div>
+            </div>
+
+            <div id="actionBar"></div>
+        </div>
+    </div>
+
+    <div id="actionModalContainer"></div>
+    <div class="copied-toast" id="toast">Copied to clipboard</div>
+    <script src="/static/officer.js?v=12"></script>
+</body>
+</html>

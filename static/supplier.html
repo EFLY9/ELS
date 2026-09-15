@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELS TV Registration — Supplier</title>
+    <link rel="stylesheet" href="/static/styles.css?v=12">
+</head>
+<body>
+    <div class="header">
+        <h1>ELS Registration</h1>
+        <span class="badge" style="background:#dcfce7;color:#16a34a;">Supplier</span>
+        <a href="/" style="margin-left:auto;font-size:13px;color:var(--text-secondary);text-decoration:none;">&#8592; Switch Role</a>
+    </div>
+
+    <div class="container" id="app">
+        <!-- Dashboard View (submissions list + new application button) -->
+        <div id="dashboardView">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <h2 style="font-size:18px;font-weight:600;">My Submissions</h2>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn btn-primary" onclick="showNewUpload()">+ New Application</button>
+                    <button class="btn btn-outline btn-sm" onclick="loadDashboard()">Refresh</button>
+                </div>
+            </div>
+            <div id="submissionsList"></div>
+        </div>
+
+        <!-- Upload View (new application) -->
+        <div id="uploadView" style="display:none;">
+            <button class="btn btn-outline back-btn" onclick="showDashboard()">&#8592; Back to My Submissions</button>
+
+            <!-- Product Type Selector -->
+            <div style="text-align:center;margin:20px 0;">
+                <label style="font-size:14px;font-weight:600;margin-right:10px;">Product Type:</label>
+                <select id="productTypeSelect" onchange="onProductTypeChange()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);font-size:14px;">
+                    <option value="tv">Television (TV)</option>
+                    <option value="refrigerator">Refrigerator</option>
+                </select>
+            </div>
+
+            <div class="upload-section" style="padding-top:10px;">
+                <div class="upload-area" id="dropZone">
+                    <div class="icon">&#128196;</div>
+                    <h2 id="uploadTitle">Upload TV Test Report</h2>
+                    <p>Drag and drop your test report PDF here, or click to browse</p>
+                    <p style="margin-top:8px;font-size:12px;color:var(--text-secondary);">
+                        We'll check your report for issues and pre-fill the registration form for you.
+                    </p>
+                </div>
+                <input type="file" id="fileInput" accept=".pdf">
+                <div class="upload-actions">
+                    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Upload PDF</button>
+                    <button class="btn btn-outline" onclick="runDemo()">Try Demo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading View -->
+        <div id="loadingView" style="display:none" class="loading">
+            <div class="spinner"></div>
+            <h2>Checking your test report...</h2>
+            <p style="color:var(--text-secondary);margin-top:8px;">
+                Extracting TV specifications and running compliance checks
+            </p>
+        </div>
+
+        <!-- Results View (new submission or amend) -->
+        <div id="resultsView" style="display:none">
+            <button class="btn btn-outline back-btn" onclick="showDashboard()">&#8592; Back to My Submissions</button>
+
+            <!-- Officer return comments (shown when amending) -->
+            <div id="returnCommentsBar" style="display:none;"></div>
+
+            <div class="results-layout">
+                <!-- Left Panel: Issues Only -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Report Check</h2>
+                        <span id="overallStatus" class="badge"></span>
+                    </div>
+                    <div class="panel-body" id="issuesPanel"></div>
+                </div>
+
+                <!-- Right Panel: Registration Form + Submit -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>ELS Registration Fields</h2>
+                        <button class="btn btn-sm btn-outline" onclick="copyAllFields()">Copy All</button>
+                    </div>
+                    <div class="panel-body" id="formPanel"></div>
+                    <div class="copy-all-bar" id="submitBar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <div class="modal-icon" id="modalIcon">&#9989;</div>
+            <h3 id="modalTitle">Registration Submitted</h3>
+            <p id="modalDesc"></p>
+            <span id="submissionId" style="display:none;"></span>
+            <button class="btn btn-primary" onclick="closeModalAndRefresh()">Done</button>
+        </div>
+    </div>
+
+    <div class="copied-toast" id="toast">Copied to clipboard</div>
+    <script src="/static/supplier.js?v=12"></script>
+</body>
+</html>
