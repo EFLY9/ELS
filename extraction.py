@@ -237,7 +237,7 @@ def _get_api_config():
 
 def _get_model():
     """Get the model ID from environment, Streamlit secrets, or use default."""
-    return _get_secret("ANTHROPIC_DEFAULT_SONNET_MODEL", "claude-sonnet-4-20250514")
+    return _get_secret("ANTHROPIC_DEFAULT_SONNET_MODEL", "claude-sonnet-4-6")
 
 
 def extract_from_pdf(pdf_bytes: bytes) -> dict:
