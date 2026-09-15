@@ -21,8 +21,10 @@ st.markdown("""<style>
     .stAppDeployButton { display: none; }
     .block-container { padding-top: 1rem; max-width: 1200px; }
     div[data-testid="stForm"] { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
-    .st-key-submit_btn button { background-color: #16a34a !important; color: white !important; }
-    .st-key-submit_btn button:disabled { background-color: #94a3b8 !important; }
+    button[kind="primary"] { background-color: #2563eb !important; border-color: #2563eb !important; }
+    button[kind="primary"]:hover { background-color: #1d4ed8 !important; border-color: #1d4ed8 !important; }
+    button[kind="primary"]:disabled { background-color: #94a3b8 !important; border-color: #94a3b8 !important; }
+    h1 { font-size: 1.8rem !important; }
 </style>""", unsafe_allow_html=True)
 
 REQUIRED_TV = {"type_of_television","brand","model_numbers","diagonal_screen_size","screen_aspect_ratio","year_of_manufacture","country_of_origin","test_report_reference_no","date_of_issue","test_standard","screen_area_dm2","power_input_on_mode_w","passive_standby_power_w","lab_name","lab_country"}
@@ -107,18 +109,23 @@ for k, v in [("role", None), ("page", "dashboard"), ("data", None), ("amend_id",
 
 # ==================== LANDING ====================
 if st.session_state.role is None:
-    st.markdown("## ELS Registration Assistant")
-    st.caption("AI-Powered TV & Refrigerator Test Report Extraction & Validation")
-    c1, c2 = st.columns(2)
+    st.write("")
+    st.markdown("<h1 style='text-align:center;'>ELS Registration Assistant</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;color:#64748b;'>AI-Powered TV &amp; Refrigerator Test Report Extraction &amp; Validation</p>", unsafe_allow_html=True)
+    st.write("")
+    st.write("")
+    _, c1, gap, c2, _ = st.columns([1, 3, 0.5, 3, 1])
     with c1:
         st.markdown("#### Supplier")
-        st.write("Upload test reports, check for issues, and submit registrations.")
+        st.write("Upload test reports, check for issues, auto-fill registration fields, and submit for approval.")
+        st.write("")
         if st.button("Enter as Supplier", type="primary", use_container_width=True):
             st.session_state.role = "supplier"
             st.rerun()
     with c2:
         st.markdown("#### NEA Officer")
-        st.write("Review submissions, approve/reject/return registrations.")
+        st.write("Review supplier submissions, run full compliance validation, approve/reject/return registrations.")
+        st.write("")
         if st.button("Enter as Officer", type="primary", use_container_width=True):
             st.session_state.role = "officer"
             st.rerun()
