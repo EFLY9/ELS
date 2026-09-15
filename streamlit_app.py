@@ -359,71 +359,69 @@ elif st.session_state.role == "officer":
         if not subs:
             st.info("No submissions yet. Supplier submissions will appear here.")
         else:
-            status_badges = {"Approved": "approved", "Rejected": "rejected", "Returned": "returned", "Pending Review": "pending", "De-registered": "dereg"}
-            html = '<table class="sub-table"><thead><tr><th>ID</th><th>Product</th><th>Brand / Model</th><th>Submitted</th><th>Validation</th><th>Status</th></tr></thead><tbody>'
+            st.markdown('<div style="font-size:12px;color:#64748b;padding:8px 0;border-bottom:2px solid #e2e8f0;display:flex;"><span style="width:10%;">ID</span><span style="width:8%;">Product</span><span style="width:22%;">Brand / Model</span><span style="width:14%;">Submitted</span><span style="width:8%;">Score</span><span style="width:12%;">Status</span><span style="width:26%;">Actions</span></div>', unsafe_allow_html=True)
             for sub in subs:
+                sid = sub["id"]
                 dt = datetime.fromisoformat(sub["submitted_at"])
-                pt_cls = "fridge" if sub.get("product_type") == "refrigerator" else "tv"
                 pt_lbl = "Fridge" if sub.get("product_type") == "refrigerator" else "TV"
                 status = sub.get("status", "Pending Review")
-                badge_cls = status_badges.get(status, "pending")
                 passed = sub["validation"]["summary"]["passed"]
                 total = sub["validation"]["summary"]["total"]
-                val_cls = "val-pass" if passed == total else "val-fail"
-                model_short = (sub.get("model", "") or "")[:25]
-                html += f'<tr><td class="mono">{sub["id"]}</td>'
-                html += f'<td><span class="badge badge-{pt_cls}">{pt_lbl}</span></td>'
-                html += f'<td class="brand-model">{sub.get("brand","")} {model_short}</td>'
-                html += f'<td style="color:#64748b;">{dt.strftime("%d/%m/%Y %H:%M")}</td>'
-                html += f'<td><span class="val-score {val_cls}">{passed}/{total}</span></td>'
-                html += f'<td><span class="badge badge-{badge_cls}">{status}</span></td></tr>'
-            html += '</tbody></table>'
-            st.markdown(html, unsafe_allow_html=True)
+                model_short = (sub.get("model", "") or "")[:20]
 
-            st.write("")
-            sel = st.selectbox("Select submission to act on:", [""] + [f"{s['id']} — {s.get('brand','')} {(s.get('model','') or '')[:20]} ({s.get('status','Pending Review')})" for s in subs], key="officer_sel")
-            if sel:
-                sid = sel.split(" — ")[0]
-                sub_data = next((s for s in subs if s["id"] == sid), None)
-                if sub_data:
-                    status = sub_data.get("status", "Pending Review")
-                    cols = st.columns(4)
-                    with cols[0]:
-                        if st.button("View", key=f"v_{sid}", type="primary"):
-                            st.session_state.page = f"detail_{sid}"
-                            st.rerun()
-                    with cols[1]:
-                        if status == "Approved" and st.button("De-register", key=f"dr_{sid}"):
+                status_badges = {"Approved": "approved", "Rejected": "rejected", "Returned": "returned", "Pending Review": "pending", "De-registered": "dereg"}
+                badge_cls = status_badges.get(status, "pending")
+                pt_cls = "fridge" if sub.get("product_type") == "refrigerator" else "tv"
+                val_cls = "val-pass" if passed == total else "val-fail"
+
+                row_html = f'<div style="font-size:13px;padding:10px 0;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;">'
+                row_html += f'<span style="width:10%;" class="mono">{sid}</span>'
+                row_html += f'<span style="width:8%;"><span class="badge badge-{pt_cls}">{pt_lbl}</span></span>'
+                row_html += f'<span style="width:22%;font-weight:600;">{sub.get("brand","")} {model_short}</span>'
+                row_html += f'<span style="width:14%;color:#64748b;">{dt.strftime("%d/%m/%y %H:%M")}</span>'
+                row_html += f'<span style="width:8%;" class="val-score {val_cls}">{passed}/{total}</span>'
+                row_html += f'<span style="width:12%;"><span class="badge badge-{badge_cls}">{status}</span></span>'
+                row_html += f'</div>'
+                st.markdown(row_html, unsafe_allow_html=True)
+
+                c1, c2, c3, c4 = st.columns([1, 1, 1, 3])
+                with c1:
+                    if st.button("View", key=f"v_{sid}", use_container_width=True):
+                        st.session_state.page = f"detail_{sid}"
+                        st.rerun()
+                with c2:
+                    if status == "Approved":
+                        if st.button("De-reg", key=f"dr_{sid}", use_container_width=True):
                             st.session_state[f"action_{sid}"] = "deregister"
                             st.rerun()
-                    with cols[2]:
-                        if st.button("Delete", key=f"dl_{sid}"):
-                            st.session_state[f"action_{sid}"] = "delete"
-                            st.rerun()
+                with c3:
+                    if st.button("Delete", key=f"dl_{sid}", use_container_width=True):
+                        st.session_state[f"action_{sid}"] = "delete"
+                        st.rerun()
 
-                    action_key = f"action_{sid}"
-                    if st.session_state.get(action_key):
-                        act = st.session_state[action_key]
-                        if act == "delete":
-                            st.warning(f"Confirm delete {sid}?")
-                            c1, c2 = st.columns(2)
-                            if c1.button("Yes, delete", key=f"yd_{sid}"):
-                                do_action(sid, "delete")
-                                del st.session_state[action_key]
-                                st.rerun()
-                            if c2.button("Cancel", key=f"cd_{sid}"):
-                                del st.session_state[action_key]
-                                st.rerun()
-                        elif act == "deregister":
-                            reason = st.text_input("De-registration reason:", key=f"drr_{sid}")
-                            c1, c2 = st.columns(2)
-                            if c1.button("Confirm", key=f"cdr_{sid}") and reason.strip():
-                                do_action(sid, "deregister", reason.strip())
-                                del st.session_state[action_key]
-                                st.rerun()
-                            if c2.button("Cancel", key=f"xdr_{sid}"):
-                                del st.session_state[action_key]
-                                st.rerun()
+                action_key = f"action_{sid}"
+                if st.session_state.get(action_key):
+                    act = st.session_state[action_key]
+                    if act == "delete":
+                        st.warning(f"Confirm delete {sid}?")
+                        dc1, dc2 = st.columns(2)
+                        if dc1.button("Yes, delete", key=f"yd_{sid}"):
+                            do_action(sid, "delete")
+                            del st.session_state[action_key]
+                            st.rerun()
+                        if dc2.button("Cancel", key=f"cd_{sid}"):
+                            del st.session_state[action_key]
+                            st.rerun()
+                    elif act == "deregister":
+                        reason = st.text_input("De-registration reason:", key=f"drr_{sid}")
+                        dc1, dc2 = st.columns(2)
+                        if dc1.button("Confirm", key=f"cdr_{sid}") and reason.strip():
+                            do_action(sid, "deregister", reason.strip())
+                            del st.session_state[action_key]
+                            st.rerun()
+                        if dc2.button("Cancel", key=f"xdr_{sid}"):
+                            del st.session_state[action_key]
+                            st.rerun()
 
     # --- Detail view ---
     elif st.session_state.page.startswith("detail_"):
