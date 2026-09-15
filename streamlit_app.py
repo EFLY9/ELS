@@ -20,11 +20,27 @@ st.markdown("""<style>
     [data-testid="stSidebar"] { display: none; }
     .stAppDeployButton { display: none; }
     .block-container { padding-top: 2.5rem; max-width: 1200px; }
-    div[data-testid="stForm"] { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
     button[kind="primary"] { background-color: #2563eb !important; border-color: #2563eb !important; }
     button[kind="primary"]:hover { background-color: #1d4ed8 !important; border-color: #1d4ed8 !important; }
     button[kind="primary"]:disabled { background-color: #94a3b8 !important; border-color: #94a3b8 !important; }
     h1 { font-size: 1.8rem !important; }
+    .sub-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .sub-table th { text-align: left; padding: 10px 12px; font-size: 12px; color: #64748b; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+    .sub-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+    .sub-table tr:hover { background: #f8fafc; }
+    .sub-table .mono { font-family: monospace; font-size: 13px; color: #64748b; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .badge-approved { background: #dcfce7; color: #16a34a; }
+    .badge-pending { background: #dbeafe; color: #2563eb; }
+    .badge-returned { background: #fef3c7; color: #d97706; }
+    .badge-rejected { background: #fee2e2; color: #dc2626; }
+    .badge-dereg { background: #fee2e2; color: #dc2626; }
+    .badge-tv { background: #dbeafe; color: #2563eb; }
+    .badge-fridge { background: #f0fdf4; color: #16a34a; }
+    .brand-model { font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .val-score { font-weight: 600; }
+    .val-pass { color: #16a34a; }
+    .val-fail { color: #dc2626; }
 </style>""", unsafe_allow_html=True)
 
 REQUIRED_TV = {"type_of_television","brand","model_numbers","diagonal_screen_size","screen_aspect_ratio","year_of_manufacture","country_of_origin","test_report_reference_no","date_of_issue","test_standard","screen_area_dm2","power_input_on_mode_w","passive_standby_power_w","lab_name","lab_country"}
@@ -155,26 +171,31 @@ elif st.session_state.role == "supplier":
         if not subs:
             st.info("No submissions yet. Click '+ New Application' to start.")
         else:
+            status_badges = {"Approved": "approved", "Rejected": "rejected", "Returned": "returned", "Pending Review": "pending", "De-registered": "dereg"}
+            html = '<table class="sub-table"><thead><tr><th>ID</th><th>Product</th><th>Brand / Model</th><th>Submitted</th><th>Status</th></tr></thead><tbody>'
             for sub in subs:
                 dt = datetime.fromisoformat(sub["submitted_at"])
-                product_label = "Fridge" if sub.get("product_type") == "refrigerator" else "TV"
+                pt_cls = "fridge" if sub.get("product_type") == "refrigerator" else "tv"
+                pt_lbl = "Fridge" if sub.get("product_type") == "refrigerator" else "TV"
                 status = sub.get("status", "Pending Review")
-                with st.container(border=True):
-                    cols = st.columns([1, 1, 2, 2, 2, 2])
-                    cols[0].markdown(f"`{sub['id']}`")
-                    cols[1].write(product_label)
-                    cols[2].write(f"**{sub.get('brand','')}** {sub.get('model','')}")
-                    cols[3].write(dt.strftime("%d/%m/%Y %H:%M"))
-                    if status == "Approved":
-                        cols[4].success(status)
-                    elif status == "Rejected":
-                        cols[4].error(status)
-                    elif status == "Returned":
-                        cols[4].warning(status)
-                    else:
-                        cols[4].info(status)
-                    if status == "Returned":
-                        if cols[5].button("Amend", key=f"amend_{sub['id']}"):
+                badge_cls = status_badges.get(status, "pending")
+                model_short = (sub.get("model", "") or "")[:30]
+                html += f'<tr><td class="mono">{sub["id"]}</td><td><span class="badge badge-{pt_cls}">{pt_lbl}</span></td>'
+                html += f'<td class="brand-model">{sub.get("brand","")} {model_short}</td>'
+                html += f'<td style="color:#64748b;">{dt.strftime("%d/%m/%Y %H:%M")}</td>'
+                html += f'<td><span class="badge badge-{badge_cls}">{status}</span></td></tr>'
+            html += '</tbody></table>'
+            st.markdown(html, unsafe_allow_html=True)
+
+            st.write("")
+            for sub in subs:
+                status = sub.get("status", "Pending Review")
+                if status == "Returned":
+                    with st.container(border=True):
+                        st.markdown(f"**{sub['id']}** — Returned for clarification")
+                        if sub.get("return_comments"):
+                            st.caption(f"Officer: _{sub['return_comments']}_")
+                        if st.button("Amend & Re-submit", key=f"amend_{sub['id']}", type="primary"):
                             st.session_state.page = "results"
                             st.session_state.amend_id = sub["id"]
                             st.session_state.product_type = sub.get("product_type", "tv")
@@ -186,10 +207,6 @@ elif st.session_state.role == "supplier":
                                                      "field_sources": full.get("field_sources",{}),
                                                      "return_comments": full.get("return_comments","")}
                             st.rerun()
-                    if status == "Returned" and sub.get("return_comments"):
-                        st.caption(f"Officer: _{sub['return_comments']}_")
-                    if status == "Rejected" and sub.get("rejection_reason"):
-                        st.caption(f"Reason: _{sub['rejection_reason']}_")
 
     # --- Upload ---
     elif st.session_state.page == "upload":
@@ -340,67 +357,71 @@ elif st.session_state.role == "officer":
     if st.session_state.page == "dashboard":
         subs = load_submissions()
         if not subs:
-            st.info("No submissions yet.")
+            st.info("No submissions yet. Supplier submissions will appear here.")
         else:
+            status_badges = {"Approved": "approved", "Rejected": "rejected", "Returned": "returned", "Pending Review": "pending", "De-registered": "dereg"}
+            html = '<table class="sub-table"><thead><tr><th>ID</th><th>Product</th><th>Brand / Model</th><th>Submitted</th><th>Validation</th><th>Status</th></tr></thead><tbody>'
             for sub in subs:
                 dt = datetime.fromisoformat(sub["submitted_at"])
-                product_label = "Fridge" if sub.get("product_type") == "refrigerator" else "TV"
+                pt_cls = "fridge" if sub.get("product_type") == "refrigerator" else "tv"
+                pt_lbl = "Fridge" if sub.get("product_type") == "refrigerator" else "TV"
                 status = sub.get("status", "Pending Review")
+                badge_cls = status_badges.get(status, "pending")
                 passed = sub["validation"]["summary"]["passed"]
                 total = sub["validation"]["summary"]["total"]
+                val_cls = "val-pass" if passed == total else "val-fail"
+                model_short = (sub.get("model", "") or "")[:25]
+                html += f'<tr><td class="mono">{sub["id"]}</td>'
+                html += f'<td><span class="badge badge-{pt_cls}">{pt_lbl}</span></td>'
+                html += f'<td class="brand-model">{sub.get("brand","")} {model_short}</td>'
+                html += f'<td style="color:#64748b;">{dt.strftime("%d/%m/%Y %H:%M")}</td>'
+                html += f'<td><span class="val-score {val_cls}">{passed}/{total}</span></td>'
+                html += f'<td><span class="badge badge-{badge_cls}">{status}</span></td></tr>'
+            html += '</tbody></table>'
+            st.markdown(html, unsafe_allow_html=True)
 
-                with st.container(border=True):
-                    cols = st.columns([1, 1, 2, 1, 1, 1, 2])
-                    cols[0].markdown(f"`{sub['id']}`")
-                    cols[1].write(product_label)
-                    cols[2].write(f"**{sub.get('brand','')}** {sub.get('model','')}")
-                    cols[3].write(f"{passed}/{total}")
+            st.write("")
+            for sub in subs:
+                sid = sub["id"]
+                status = sub.get("status", "Pending Review")
+                cols = st.columns([2, 2, 2, 2])
+                with cols[0]:
+                    if st.button(f"View {sid}", key=f"v_{sid}"):
+                        st.session_state.page = f"detail_{sid}"
+                        st.rerun()
+                with cols[1]:
                     if status == "Approved":
-                        cols[4].success(status)
-                    elif status in ("Rejected", "De-registered"):
-                        cols[4].error(status)
-                    elif status == "Returned":
-                        cols[4].warning(status)
-                    else:
-                        cols[4].info(status)
-
-                    with cols[5]:
-                        if st.button("View", key=f"v_{sub['id']}"):
-                            st.session_state.page = f"detail_{sub['id']}"
+                        if st.button(f"De-register {sid}", key=f"dr_{sid}"):
+                            st.session_state[f"action_{sid}"] = "deregister"
                             st.rerun()
-                    with cols[6]:
-                        bc1, bc2 = st.columns(2)
-                        if status == "Approved":
-                            if bc1.button("De-reg", key=f"dr_{sub['id']}"):
-                                st.session_state[f"action_{sub['id']}"] = "deregister"
-                                st.rerun()
-                        if bc2.button("Del", key=f"dl_{sub['id']}"):
-                            st.session_state[f"action_{sub['id']}"] = "delete"
-                            st.rerun()
+                with cols[2]:
+                    if st.button(f"Delete {sid}", key=f"dl_{sid}"):
+                        st.session_state[f"action_{sid}"] = "delete"
+                        st.rerun()
 
-                    action_key = f"action_{sub['id']}"
-                    if st.session_state.get(action_key):
-                        act = st.session_state[action_key]
-                        if act == "delete":
-                            st.warning("Confirm delete?")
-                            c1, c2 = st.columns(2)
-                            if c1.button("Yes, delete", key=f"yd_{sub['id']}"):
-                                do_action(sub["id"], "delete")
-                                del st.session_state[action_key]
-                                st.rerun()
-                            if c2.button("Cancel", key=f"cd_{sub['id']}"):
-                                del st.session_state[action_key]
-                                st.rerun()
-                        elif act == "deregister":
-                            reason = st.text_input("De-registration reason:", key=f"drr_{sub['id']}")
-                            c1, c2 = st.columns(2)
-                            if c1.button("Confirm", key=f"cdr_{sub['id']}") and reason.strip():
-                                do_action(sub["id"], "deregister", reason.strip())
-                                del st.session_state[action_key]
-                                st.rerun()
-                            if c2.button("Cancel", key=f"xdr_{sub['id']}"):
-                                del st.session_state[action_key]
-                                st.rerun()
+                action_key = f"action_{sid}"
+                if st.session_state.get(action_key):
+                    act = st.session_state[action_key]
+                    if act == "delete":
+                        st.warning(f"Confirm delete {sid}?")
+                        c1, c2 = st.columns(2)
+                        if c1.button("Yes, delete", key=f"yd_{sid}"):
+                            do_action(sid, "delete")
+                            del st.session_state[action_key]
+                            st.rerun()
+                        if c2.button("Cancel", key=f"cd_{sid}"):
+                            del st.session_state[action_key]
+                            st.rerun()
+                    elif act == "deregister":
+                        reason = st.text_input("De-registration reason:", key=f"drr_{sid}")
+                        c1, c2 = st.columns(2)
+                        if c1.button("Confirm", key=f"cdr_{sid}") and reason.strip():
+                            do_action(sid, "deregister", reason.strip())
+                            del st.session_state[action_key]
+                            st.rerun()
+                        if c2.button("Cancel", key=f"xdr_{sid}"):
+                            del st.session_state[action_key]
+                            st.rerun()
 
     # --- Detail view ---
     elif st.session_state.page.startswith("detail_"):
