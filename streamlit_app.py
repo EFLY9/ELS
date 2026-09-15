@@ -136,7 +136,7 @@ elif st.session_state.role == "supplier":
     with col1:
         st.markdown("<h3 style='margin-bottom:0;'>ELS Registration — Supplier</h3>", unsafe_allow_html=True)
     with col2:
-        if st.button("Switch Role"):
+        if st.button("← Home"):
             st.session_state.role = None
             st.session_state.page = "dashboard"
             st.rerun()
@@ -332,7 +332,7 @@ elif st.session_state.role == "officer":
     with col1:
         st.markdown("<h3 style='margin-bottom:0;'>ELS Registration — Officer</h3>", unsafe_allow_html=True)
     with col2:
-        if st.button("Switch Role"):
+        if st.button("← Home"):
             st.session_state.role = None
             st.session_state.page = "dashboard"
             st.rerun()
