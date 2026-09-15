@@ -226,10 +226,12 @@ def _get_api_config():
         return base_url.rstrip("/"), {"x-api-key": auth_token}
     elif api_key:
         return "https://api.anthropic.com", {"x-api-key": api_key}
+    elif auth_token:
+        return "https://api.anthropic.com", {"x-api-key": auth_token}
     else:
         raise ValueError(
-            "No Claude credentials found. Set ANTHROPIC_API_KEY or ensure "
-            "ANTHROPIC_AUTH_TOKEN and ANTHROPIC_BASE_URL are available."
+            "No Claude credentials found. Set ANTHROPIC_API_KEY or "
+            "ANTHROPIC_AUTH_TOKEN in Streamlit secrets."
         )
 
 
