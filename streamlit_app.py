@@ -19,7 +19,7 @@ st.set_page_config(page_title="ELS Registration Assistant", layout="wide", initi
 st.markdown("""<style>
     [data-testid="stSidebar"] { display: none; }
     .stAppDeployButton { display: none; }
-    .block-container { padding-top: 1rem; max-width: 1200px; }
+    .block-container { padding-top: 2.5rem; max-width: 1200px; }
     div[data-testid="stForm"] { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
     button[kind="primary"] { background-color: #2563eb !important; border-color: #2563eb !important; }
     button[kind="primary"]:hover { background-color: #1d4ed8 !important; border-color: #1d4ed8 !important; }
