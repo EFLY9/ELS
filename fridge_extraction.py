@@ -146,7 +146,7 @@ def extract_fridge_from_pdf(pdf_bytes: bytes) -> dict:
         ],
     }
 
-    with httpx.Client(timeout=120.0) as client:
+    with httpx.Client(timeout=300.0) as client:
         resp = client.post(f"{base_url}/v1/messages", headers=headers, json=payload)
 
     if resp.status_code != 200:
