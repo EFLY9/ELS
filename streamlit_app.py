@@ -10,6 +10,7 @@ from extraction import extract_from_pdf, get_demo_data
 from validation import validate_all
 from fridge_extraction import extract_fridge_from_pdf, get_fridge_demo_data
 from fridge_validation import validate_fridge
+import sheets_storage
 
 SUBMISSIONS_DIR = Path(__file__).parent / "submissions"
 SUBMISSIONS_DIR.mkdir(exist_ok=True)
@@ -59,11 +60,14 @@ FRIDGE_FIELDS = [
 
 
 def load_submissions():
-    subs = []
-    for fp in sorted(SUBMISSIONS_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
-        with open(fp) as f:
-            subs.append(json.load(f))
-    return subs
+    try:
+        return sheets_storage.load_all_submissions()
+    except Exception:
+        subs = []
+        for fp in sorted(SUBMISSIONS_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+            with open(fp) as f:
+                subs.append(json.load(f))
+        return subs
 
 
 def save_submission(extracted, validation, edited, sources, product_type):
@@ -80,19 +84,38 @@ def save_submission(extracted, validation, edited, sources, product_type):
            "registration_fields": edited, "field_sources": sources,
            "original_extracted": extracted.get("registration_fields",{}),
            "extracted": extracted, "validation": validation}
-    with open(SUBMISSIONS_DIR / f"{sid}.json", "w") as f:
-        json.dump(sub, f, indent=2)
+    try:
+        sheets_storage.save_submission(sub)
+    except Exception:
+        with open(SUBMISSIONS_DIR / f"{sid}.json", "w") as f:
+            json.dump(sub, f, indent=2)
     return sid, auto
 
 
 def do_action(sid, action, comments=""):
-    fp = SUBMISSIONS_DIR / f"{sid}.json"
-    with open(fp) as f:
-        data = json.load(f)
+    try:
+        data = sheets_storage.get_submission(sid)
+    except Exception:
+        data = None
+    if data is None:
+        fp = SUBMISSIONS_DIR / f"{sid}.json"
+        if fp.exists():
+            with open(fp) as f:
+                data = json.load(f)
+    if data is None:
+        return
+
     now = datetime.now().isoformat()
     if action == "delete":
-        fp.unlink()
+        try:
+            sheets_storage.delete_submission(sid)
+        except Exception:
+            pass
+        fp = SUBMISSIONS_DIR / f"{sid}.json"
+        if fp.exists():
+            fp.unlink()
         return
+
     data.setdefault("history", []).append({"action": action, "by": "officer", "at": now, "comments": comments})
     if action == "approve":
         data.update(status="Approved", approved_by="officer", approved_at=now, officer_comments=comments)
@@ -102,19 +125,36 @@ def do_action(sid, action, comments=""):
         data.update(status="Returned", returned_by="officer", returned_at=now, return_comments=comments)
     elif action == "deregister":
         data.update(status="De-registered", deregistered_by="officer", deregistered_at=now, deregister_reason=comments)
-    with open(fp, "w") as f:
-        json.dump(data, f, indent=2)
+
+    try:
+        sheets_storage.update_submission(sid, data)
+    except Exception:
+        with open(SUBMISSIONS_DIR / f"{sid}.json", "w") as f:
+            json.dump(data, f, indent=2)
 
 
 def resubmit(sid, edited, sources):
-    fp = SUBMISSIONS_DIR / f"{sid}.json"
-    with open(fp) as f:
-        data = json.load(f)
+    try:
+        data = sheets_storage.get_submission(sid)
+    except Exception:
+        data = None
+    if data is None:
+        fp = SUBMISSIONS_DIR / f"{sid}.json"
+        if fp.exists():
+            with open(fp) as f:
+                data = json.load(f)
+    if data is None:
+        return
+
     now = datetime.now().isoformat()
     data.setdefault("history", []).append({"action": "resubmit", "by": "supplier", "at": now, "comments": ""})
     data.update(status="Pending Review", registration_fields=edited, field_sources=sources, resubmitted_at=now)
-    with open(fp, "w") as f:
-        json.dump(data, f, indent=2)
+
+    try:
+        sheets_storage.update_submission(sid, data)
+    except Exception:
+        with open(SUBMISSIONS_DIR / f"{sid}.json", "w") as f:
+            json.dump(data, f, indent=2)
 
 
 # Session state defaults
@@ -426,12 +466,18 @@ elif st.session_state.role == "officer":
     # --- Detail view ---
     elif st.session_state.page.startswith("detail_"):
         sid = st.session_state.page.replace("detail_", "")
-        fp = SUBMISSIONS_DIR / f"{sid}.json"
-        if not fp.exists():
+        try:
+            sub = sheets_storage.get_submission(sid)
+        except Exception:
+            sub = None
+        if sub is None:
+            fp = SUBMISSIONS_DIR / f"{sid}.json"
+            if fp.exists():
+                with open(fp) as f:
+                    sub = json.load(f)
+        if sub is None:
             st.error("Not found")
         else:
-            with open(fp) as f:
-                sub = json.load(f)
 
             if st.button("Back to submissions"):
                 st.session_state.page = "dashboard"
